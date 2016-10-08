@@ -32,13 +32,8 @@ fn info_for_archive_item(archive_item: zip::read::ZipFile) -> String {
     info
 }
 
-fn info_for_path(path: String) -> String {
+fn info_for_archive(mut whole_archive: zip::ZipArchive<fs::File>) -> String {
     let mut info = String::new();
-    info = format!("{}", path);
-
-    // Add archive contents:
-    let file = fs::File::open(&path).unwrap();
-    let mut whole_archive = zip::ZipArchive::new(file).unwrap();
 
     for i in 0..whole_archive.len() {
         let archive_item = whole_archive.by_index(i).unwrap();
@@ -46,6 +41,20 @@ fn info_for_path(path: String) -> String {
     }
 
     info
+}
+
+fn info_for_path(path: String) -> String {
+    let mut info = String::new();
+    info = format!("{}", path);
+
+    // Add archive contents:
+    let file = fs::File::open(&path).unwrap();
+    let archive_info = match zip::ZipArchive::new(file) {
+        Ok(a) => info_for_archive(a).to_string(),
+        Err(a) => " is not a Zip archive".to_string(),
+    };
+
+    format!("{}{}", info, archive_info)
 }
 
 pub fn display_info_for_paths(paths: Vec<String>) {
