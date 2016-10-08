@@ -1,7 +1,7 @@
 # zip-info
 
 ```
-Usage: zi <path>
+Usage: zi <path> ...
        zi --help
 
 zi presents information about Zip archives.
