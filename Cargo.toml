@@ -1,0 +1,6 @@
+[package]
+name = "zip-info"
+version = "0.1.0"
+authors = ["Don Rowe <rowedonalde@gmail.com>"]
+
+[dependencies]
