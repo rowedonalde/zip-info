@@ -2,6 +2,12 @@ extern crate zip;
 
 use std::fs;
 
+fn info_for_archive_item(archive_item: zip::read::ZipFile) -> String {
+    let info = String::new();
+    let item_path = archive_item.name();
+    format!("{}\n\t{}", info, item_path)
+}
+
 fn info_for_path(path: String) -> String {
     let mut info = String::new();
     info = format!("{}", path);
@@ -12,8 +18,7 @@ fn info_for_path(path: String) -> String {
 
     for i in 0..whole_archive.len() {
         let archive_item = whole_archive.by_index(i).unwrap();
-        let item_path = archive_item.name();
-        info = format!("{}\n\t{}", info, item_path);
+        info = format!("{}{}", info, info_for_archive_item(archive_item));
     }
 
     info
