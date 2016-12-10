@@ -28,7 +28,6 @@ fn main() {
     let args: Args = Docopt::new(USAGE)
                             .and_then(|d| d.decode())
                             .unwrap_or_else(|e| e.exit());
-    //zip_info::display_info_for_paths(args.arg_path);
 
     for path in args.arg_path {
         let mut wr = flat_writer::ZipInfoFlatWriter::new(path);
