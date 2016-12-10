@@ -5,6 +5,7 @@ use zip_info::WriteZipInfo;
 
 pub struct ZipInfoFlatWriter {
     archive: zip::ZipArchive<fs::File>,
+    path_name: String,
 }
 
 impl ZipInfoFlatWriter {
@@ -14,13 +15,14 @@ impl ZipInfoFlatWriter {
 
         let whole_archive = zip::ZipArchive::new(file).unwrap();
 
-        ZipInfoFlatWriter { archive: whole_archive }
+        ZipInfoFlatWriter { archive: whole_archive, path_name: file_path }
     }
 }
 
 impl WriteZipInfo for ZipInfoFlatWriter {
+    /// Concatenate Zip file name with indented stats:
     fn write_zip_info(&mut self) -> String {
-        let mut info = String::new();
+        let mut info = format!("{}", self.path_name);
 
         for i in 0..self.archive.len() {
             let archive_item = self.archive.by_index(i).unwrap();
