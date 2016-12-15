@@ -1,5 +1,7 @@
+extern crate glob;
 extern crate zip;
 
+//use glob::Pattern;
 use std::fs;
 use zip_info::WriteZipInfo;
 
@@ -21,12 +23,17 @@ impl ZipInfoFlatWriter {
 
 impl WriteZipInfo for ZipInfoFlatWriter {
     /// Concatenate Zip file name with indented stats:
-    fn write_zip_info(&mut self) -> String {
+    fn write_zip_info(&mut self, exclude: &str) -> String {
         let mut info = format!("{}", self.path_name);
+
+        let exclude_pattern = glob::Pattern::new(exclude).unwrap();
 
         for i in 0..self.archive.len() {
             let archive_item = self.archive.by_index(i).unwrap();
-            info = format!("{}{}", info, info_for_archive_item(archive_item));
+
+            if !exclude_pattern.matches(archive_item.name()) {
+                info = format!("{}{}", info, info_for_archive_item(archive_item));
+            }
         }
 
         info

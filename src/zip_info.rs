@@ -1,7 +1,7 @@
 extern crate zip;
 
 pub trait WriteZipInfo {
-    fn write_zip_info(&mut self) -> String;
+    fn write_zip_info(&mut self, exclude: &str) -> String;
 }
 
 #[cfg(test)]

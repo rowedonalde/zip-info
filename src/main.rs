@@ -10,18 +10,21 @@ use zip_info::WriteZipInfo;
 
 /// The Docopt usage string
 const USAGE: &'static str = "
-Usage: zi <path> ...
+Usage: zi [--exclude=<glob>] <path> ...
        zi --help
 
 zi presents information about Zip archives.
 
 Common options:
-    -h, --help  Show this usage message
+    -h, --help        Show this usage message.
+    --exclude=<glob>  Ignore objects in the archives whose name
+                      is like this glob pattern.
 ";
 
 #[derive(Debug, RustcDecodable)]
 struct Args {
     arg_path: Vec<String>,
+    flag_exclude: String
 }
 
 fn main() {
@@ -32,6 +35,6 @@ fn main() {
     for path in args.arg_path {
         let mut wr = flat_writer::ZipInfoFlatWriter::new(path);
 
-        println!("{}", wr.write_zip_info());
+        println!("{}", wr.write_zip_info(args.flag_exclude.as_str()));
     }
 }
