@@ -1,7 +1,6 @@
 extern crate glob;
 extern crate zip;
 
-//use glob::Pattern;
 use std::fs;
 use zip_info::WriteZipInfo;
 
