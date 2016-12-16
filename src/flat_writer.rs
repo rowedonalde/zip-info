@@ -4,6 +4,18 @@ extern crate zip;
 use std::fs;
 use zip_info::WriteZipInfo;
 
+/// Info Writer for multiple archive files:
+pub struct MultiArchiveFlatWriter<'a> {
+   path_names: &'a [&'a str],
+   output: String,
+}
+
+impl<'a> MultiArchiveFlatWriter<'a> {
+    pub fn new(file_paths: &'a [&'a str]) -> MultiArchiveFlatWriter<'a> {
+        MultiArchiveFlatWriter { path_names: file_paths, output: String::new() }
+    }
+}
+
 pub struct ZipInfoFlatWriter {
     archive: zip::ZipArchive<fs::File>,
     path_name: String,
@@ -21,7 +33,7 @@ impl ZipInfoFlatWriter {
 }
 
 impl WriteZipInfo for ZipInfoFlatWriter {
-    /// Concatenate Zip file name with indented stats:
+    /// Concatenate Zip file name with indented stats for an archive:
     fn write_zip_info(&mut self, exclude: &str) -> String {
         let mut info = format!("{}", self.path_name);
 
