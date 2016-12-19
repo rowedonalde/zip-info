@@ -32,13 +32,9 @@ fn main() {
                             .and_then(|d| d.decode())
                             .unwrap_or_else(|e| e.exit());
 
-    let multiwriter = flat_writer::MultiArchiveFlatWriter::new(
+    let mut multiwriter = flat_writer::MultiArchiveFlatWriter::new(
         args.arg_path.as_slice()
     );
 
-    for path in args.arg_path {
-        let mut wr = flat_writer::ZipInfoFlatWriter::new(path);
-
-        println!("{}", wr.write_zip_info(args.flag_exclude.as_str()));
-    }
+    println!("{}", multiwriter.write_zip_info(args.flag_exclude.as_str()));
 }

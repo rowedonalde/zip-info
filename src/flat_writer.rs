@@ -6,25 +6,41 @@ use zip_info::WriteZipInfo;
 
 /// Info Writer for multiple archive files:
 pub struct MultiArchiveFlatWriter<'a> {
-   path_names: &'a [&'a str],
-   output: String,
+   path_names: &'a [String],
 }
 
 impl<'a> MultiArchiveFlatWriter<'a> {
-    pub fn new(file_paths: &'a [&'a str]) -> MultiArchiveFlatWriter<'a> {
-        MultiArchiveFlatWriter { path_names: file_paths, output: String::new() }
+    pub fn new(file_paths: &'a [String]) -> MultiArchiveFlatWriter<'a> {
+        MultiArchiveFlatWriter { path_names: file_paths }
     }
 }
 
-pub struct ZipInfoFlatWriter {
-    archive: zip::ZipArchive<fs::File>,
-    path_name: String,
+impl<'a> WriteZipInfo for MultiArchiveFlatWriter<'a> {
+    /// Given path names for multiple archives, concatenate their
+    /// names, contents, and stats:
+    fn write_zip_info(&mut self, exclude: &str) -> String {
+        let mut output = Vec::new();
+
+        for path_name in self.path_names {
+            let archive_info = ZipInfoFlatWriter::new(path_name.as_str())
+                .write_zip_info(exclude);
+
+            output.push(archive_info);
+        }
+
+        output.join("\n")
+    }
 }
 
-impl ZipInfoFlatWriter {
+pub struct ZipInfoFlatWriter<'a> {
+    archive: zip::ZipArchive<fs::File>,
+    path_name: &'a str,
+}
+
+impl<'a> ZipInfoFlatWriter<'a> {
     /// Open a zip archive for this writer:
-    pub fn new(file_path: String) -> ZipInfoFlatWriter {
-        let file = fs::File::open(&file_path).unwrap();
+    pub fn new(file_path: &str) -> ZipInfoFlatWriter {
+        let file = fs::File::open(file_path).unwrap();
 
         let whole_archive = zip::ZipArchive::new(file).unwrap();
 
@@ -32,7 +48,7 @@ impl ZipInfoFlatWriter {
     }
 }
 
-impl WriteZipInfo for ZipInfoFlatWriter {
+impl<'a> WriteZipInfo for ZipInfoFlatWriter<'a> {
     /// Concatenate Zip file name with indented stats for an archive:
     fn write_zip_info(&mut self, exclude: &str) -> String {
         let mut info = format!("{}", self.path_name);
