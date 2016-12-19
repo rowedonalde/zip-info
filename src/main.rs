@@ -1,5 +1,5 @@
-extern crate rustc_serialize;
 extern crate docopt;
+extern crate rustc_serialize;
 
 use docopt::Docopt;
 
