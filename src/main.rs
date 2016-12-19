@@ -1,10 +1,17 @@
+#![feature(custom_derive, proc_macro)]
+
 extern crate docopt;
+extern crate glob;
 extern crate rustc_serialize;
+#[macro_use]
+extern crate serde;
+extern crate zip;
 
 use docopt::Docopt;
 
 mod zip_info;
 mod flat_writer;
+mod json_writer;
 
 use zip_info::WriteZipInfo;
 

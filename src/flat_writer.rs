@@ -1,6 +1,5 @@
-extern crate glob;
-extern crate zip;
-
+use ::glob;
+use ::zip;
 use std::fs;
 use zip_info::WriteZipInfo;
 
