@@ -4,7 +4,8 @@ extern crate docopt;
 extern crate glob;
 extern crate rustc_serialize;
 #[macro_use]
-extern crate serde;
+extern crate serde_derive;
+extern crate serde_json;
 extern crate zip;
 
 use docopt::Docopt;
