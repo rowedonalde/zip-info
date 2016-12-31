@@ -7,7 +7,7 @@ struct MultiArchiveJsonWriter<'a> {
     archives: HashMap<&'a str, &'a ZipArchiveJsonWriter<'a>>,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, PartialEq)]
 struct ZipArchiveJsonWriter<'a> {
     objects: HashMap<&'a str, &'a ZipObjectJsonWriter>,
 }
@@ -64,10 +64,16 @@ mod tests {
         let zip_archive = ZipArchiveJsonWriter::new();
         let empty_hashmap: HashMap<&str, &ZipObjectJsonWriter> =
             HashMap::new();
+
+        assert_eq!(empty_hashmap, zip_archive.objects);
     }
 
     #[test]
     fn test_serialize_archive_json_writer() {
-        //let zip_archive = ZipArchive
+        //let mut zip_archive = ZipArchiveJsonWriter::new();
+        //let zip_object_name = "foo.txt";
+        //let zip_object = get_zip_object();
+
+        //zip_archive.objects.insert(zip_object_name, &zip_object);
     }
 }
