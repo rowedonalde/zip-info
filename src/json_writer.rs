@@ -7,7 +7,7 @@ struct MultiArchiveJsonWriter<'a> {
     archives: HashMap<&'a str, &'a ZipArchiveJsonWriter<'a>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Debug, PartialEq)]
 struct ZipArchiveJsonWriter<'a> {
     objects: HashMap<&'a str, &'a ZipObjectJsonWriter>,
 }
@@ -85,8 +85,13 @@ mod tests {
                 .unwrap();
             println!("zip_archive_pretty: {}", zip_archive_pretty);
 
-            let zip_archive_deserialized: ZipArchiveJsonWriter =
-                serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
+            //XXX: You can't deserialize JSON into reference fields,
+            // so ZipArchiveJsonWriter is going to have to implement
+            // one of Borrow or AsRef to make this work while still
+            // using references in the keys and values like I think
+            // the HashMaps should.
+            //let zip_archive_deserialized: ZipArchiveJsonWriter =
+            //    serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
 
             //let zip_archive_depretty: ZipArchiveJsonWriter =
             //    serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
