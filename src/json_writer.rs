@@ -12,7 +12,7 @@ struct ZipArchiveJsonWriter<'a> {
     objects: HashMap<&'a str, &'a ZipObjectJsonWriter>,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct ZipObjectJsonWriter {
     compression_type: String,
     original_size: u64,
@@ -36,6 +36,16 @@ mod tests {
         let zip_object_serialized = serde_json::to_string(&zip_object)
             .unwrap();
 
-        println!("zip_object_serialized: {}", zip_object_serialized);
+        let zip_object_pretty = serde_json::
+            to_string_pretty(&zip_object).unwrap();
+
+        let zip_object_deserialized: ZipObjectJsonWriter =
+            serde_json::from_str(zip_object_serialized.as_str()).unwrap();
+
+        let zip_object_depretty: ZipObjectJsonWriter =
+            serde_json::from_str(zip_object_pretty.as_str()).unwrap();
+
+        assert_eq!(zip_object, zip_object_deserialized);
+        assert_eq!(zip_object, zip_object_depretty);
     }
 }
