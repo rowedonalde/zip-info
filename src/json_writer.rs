@@ -12,6 +12,12 @@ struct ZipArchiveJsonWriter<'a> {
     objects: HashMap<&'a str, &'a ZipObjectJsonWriter>,
 }
 
+impl<'a> ZipArchiveJsonWriter<'a> {
+    pub fn new() -> ZipArchiveJsonWriter<'a> {
+        ZipArchiveJsonWriter { objects: HashMap::new() }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct ZipObjectJsonWriter {
     compression_type: String,
@@ -24,14 +30,18 @@ struct ZipObjectJsonWriter {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_serialize_json_writer() {
-        let zip_object = ZipObjectJsonWriter {
+    fn get_zip_object() -> ZipObjectJsonWriter {
+        ZipObjectJsonWriter {
             compression_type: format!("{}", zip::CompressionMethod::Deflated),
             original_size: 100,
             compressed_size: 50,
             compression_rate: String::from("50%"),
-        };
+        }
+    }
+
+    #[test]
+    fn test_serialize_object_json_writer() {
+        let zip_object = get_zip_object();
 
         let zip_object_serialized = serde_json::to_string(&zip_object)
             .unwrap();
@@ -47,5 +57,17 @@ mod tests {
 
         assert_eq!(zip_object, zip_object_deserialized);
         assert_eq!(zip_object, zip_object_depretty);
+    }
+
+    #[test]
+    fn test_new_archive_has_empty_map_of_zip_objects() {
+        let zip_archive = ZipArchiveJsonWriter::new();
+        let empty_hashmap: HashMap<&str, &ZipObjectJsonWriter> =
+            HashMap::new();
+    }
+
+    #[test]
+    fn test_serialize_archive_json_writer() {
+        //let zip_archive = ZipArchive
     }
 }
