@@ -7,6 +7,12 @@ struct MultiArchiveJsonWriter {
     archives: HashMap<String, ZipArchiveJsonWriter>,
 }
 
+impl MultiArchiveJsonWriter {
+    pub fn new() -> MultiArchiveJsonWriter {
+        MultiArchiveJsonWriter { archives: HashMap::new() }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct ZipArchiveJsonWriter {
     objects: HashMap<String, ZipObjectJsonWriter>,
@@ -94,5 +100,14 @@ mod tests {
             assert_eq!(zip_archive, zip_archive_deserialized);
             assert_eq!(zip_archive, zip_archive_depretty);
         }
+    }
+
+    #[test]
+    fn test_new_multi_archive_has_empty_map_of_zip_archives() {
+        let multi_archive = MultiArchiveJsonWriter::new();
+        let empty_hashmap: HashMap<String, ZipArchiveJsonWriter> =
+            HashMap::new();
+
+        assert_eq!(empty_hashmap, multi_archive.archives);
     }
 }
