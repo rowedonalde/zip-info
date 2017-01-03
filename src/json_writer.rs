@@ -3,17 +3,17 @@ use ::zip;
 use std::collections::HashMap;
 
 #[derive(Serialize, Debug)]
-struct MultiArchiveJsonWriter<'a> {
-    archives: HashMap<&'a str, &'a ZipArchiveJsonWriter<'a>>,
+struct MultiArchiveJsonWriter {
+    archives: HashMap<String, ZipArchiveJsonWriter>,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
-struct ZipArchiveJsonWriter<'a> {
-    objects: HashMap<&'a str, &'a ZipObjectJsonWriter>,
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+struct ZipArchiveJsonWriter {
+    objects: HashMap<String, ZipObjectJsonWriter>,
 }
 
-impl<'a> ZipArchiveJsonWriter<'a> {
-    pub fn new() -> ZipArchiveJsonWriter<'a> {
+impl ZipArchiveJsonWriter {
+    pub fn new() -> ZipArchiveJsonWriter {
         ZipArchiveJsonWriter { objects: HashMap::new() }
     }
 }
@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn test_new_archive_has_empty_map_of_zip_objects() {
         let zip_archive = ZipArchiveJsonWriter::new();
-        let empty_hashmap: HashMap<&str, &ZipObjectJsonWriter> =
+        let empty_hashmap: HashMap<String, ZipObjectJsonWriter> =
             HashMap::new();
 
         assert_eq!(empty_hashmap, zip_archive.objects);
@@ -70,12 +70,12 @@ mod tests {
 
     #[test]
     fn test_serialize_archive_json_writer() {
-        let zip_object_name = "foo.txt";
+        let zip_object_name = String::from("foo.txt");
         let zip_object = get_zip_object();
 
         {
             let mut zip_archive = ZipArchiveJsonWriter::new();
-            zip_archive.objects.insert(zip_object_name, &zip_object);
+            zip_archive.objects.insert(zip_object_name, zip_object);
 
             let zip_archive_serialized = serde_json::to_string(&zip_archive)
                 .unwrap();
@@ -85,19 +85,14 @@ mod tests {
                 .unwrap();
             println!("zip_archive_pretty: {}", zip_archive_pretty);
 
-            //XXX: You can't deserialize JSON into reference fields,
-            // so ZipArchiveJsonWriter is going to have to implement
-            // one of Borrow or AsRef to make this work while still
-            // using references in the keys and values like I think
-            // the HashMaps should.
-            //let zip_archive_deserialized: ZipArchiveJsonWriter =
-            //    serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
+            let zip_archive_deserialized: ZipArchiveJsonWriter =
+                serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
 
-            //let zip_archive_depretty: ZipArchiveJsonWriter =
-            //    serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
+            let zip_archive_depretty: ZipArchiveJsonWriter =
+                serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
 
-            //assert_eq!(zip_archive, zip_archive_deserialized);
-            //assert_eq!(zip_archive, zip_archive_depretty);
+            assert_eq!(zip_archive, zip_archive_deserialized);
+            assert_eq!(zip_archive, zip_archive_depretty);
         }
     }
 }
