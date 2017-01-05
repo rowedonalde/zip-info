@@ -2,7 +2,7 @@ use ::serde_json;
 use ::zip;
 use std::collections::HashMap;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct MultiArchiveJsonWriter {
     archives: HashMap<String, ZipArchiveJsonWriter>,
 }
@@ -45,6 +45,12 @@ mod tests {
         }
     }
 
+    fn get_zip_archive() -> ZipArchiveJsonWriter {
+        let mut zip_archive = ZipArchiveJsonWriter::new();
+        zip_archive.objects.insert(String::from("foo.txt"), get_zip_object());
+        zip_archive
+    }
+
     #[test]
     fn test_serialize_object_json_writer() {
         let zip_object = get_zip_object();
@@ -76,30 +82,22 @@ mod tests {
 
     #[test]
     fn test_serialize_archive_json_writer() {
-        let zip_object_name = String::from("foo.txt");
-        let zip_object = get_zip_object();
+        let zip_archive = get_zip_archive();
 
-        {
-            let mut zip_archive = ZipArchiveJsonWriter::new();
-            zip_archive.objects.insert(zip_object_name, zip_object);
+        let zip_archive_serialized = serde_json::to_string(&zip_archive)
+            .unwrap();
 
-            let zip_archive_serialized = serde_json::to_string(&zip_archive)
-                .unwrap();
-            println!("zip_archive_serialized: {}", zip_archive_serialized);
+        let zip_archive_pretty = serde_json::to_string_pretty(&zip_archive)
+            .unwrap();
 
-            let zip_archive_pretty = serde_json::to_string_pretty(&zip_archive)
-                .unwrap();
-            println!("zip_archive_pretty: {}", zip_archive_pretty);
+        let zip_archive_deserialized: ZipArchiveJsonWriter =
+            serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
 
-            let zip_archive_deserialized: ZipArchiveJsonWriter =
-                serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
+        let zip_archive_depretty: ZipArchiveJsonWriter =
+            serde_json::from_str(zip_archive_pretty.as_str()).unwrap();
 
-            let zip_archive_depretty: ZipArchiveJsonWriter =
-                serde_json::from_str(zip_archive_serialized.as_str()).unwrap();
-
-            assert_eq!(zip_archive, zip_archive_deserialized);
-            assert_eq!(zip_archive, zip_archive_depretty);
-        }
+        assert_eq!(zip_archive, zip_archive_deserialized);
+        assert_eq!(zip_archive, zip_archive_depretty);
     }
 
     #[test]
@@ -109,5 +107,28 @@ mod tests {
             HashMap::new();
 
         assert_eq!(empty_hashmap, multi_archive.archives);
+    }
+
+    #[test]
+    fn test_serialize_multi_archive_json_writer() {
+        let zip_archive = get_zip_archive();
+        let mut multi_archive = MultiArchiveJsonWriter::new();
+
+        multi_archive.archives.insert(String::from("bar.zip"), zip_archive);
+
+        let multi_archive_serialized = serde_json::to_string(&multi_archive)
+            .unwrap();
+
+        let multi_archive_pretty = serde_json::to_string_pretty(&multi_archive)
+            .unwrap();
+
+        let multi_archive_deserialized: MultiArchiveJsonWriter =
+            serde_json::from_str(multi_archive_serialized.as_str()).unwrap();
+
+        let multi_archive_depretty: MultiArchiveJsonWriter =
+            serde_json::from_str(multi_archive_pretty.as_str()).unwrap();
+
+        assert_eq!(multi_archive, multi_archive_deserialized);
+        assert_eq!(multi_archive, multi_archive_depretty);
     }
 }
