@@ -19,8 +19,17 @@ struct ZipArchiveJsonWriter {
 }
 
 impl ZipArchiveJsonWriter {
+    /// Construct ZipArchiveJsonWriter with empty map of objects:
     pub fn new() -> ZipArchiveJsonWriter {
         ZipArchiveJsonWriter { objects: HashMap::new() }
+    }
+
+    /// Create and fill ZipArchiveJsonWriter representing a
+    /// .zip file:
+    pub fn from(file_path: &str) -> ZipArchiveJsonWriter {
+        //let whole_archive = zip::ZipArchive::new(file_path).unwrap();
+        // Default result:
+        ZipArchiveJsonWriter::new()
     }
 }
 
