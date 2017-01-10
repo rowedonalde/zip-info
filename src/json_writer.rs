@@ -66,6 +66,29 @@ struct ZipObjectJsonWriter {
     compression_rate: String,
 }
 
+impl ZipObjectJsonWriter {
+    pub fn new(
+        compression_type: zip::CompressionMethod,
+        original_size: u64,
+        compressed_size: u64,
+    ) -> ZipObjectJsonWriter {
+        let compression_rate = match original_size {
+            0 => 0.0 as f64,
+            _ => {
+                (original_size as f64 - compressed_size as f64)
+                / original_size as f64
+            },
+        };
+
+        ZipObjectJsonWriter {
+            compression_type: format!("{}", compression_type),
+            original_size: original_size,
+            compressed_size: compressed_size,
+            compression_rate: format!("{:.*}%", 2, compression_rate * 100.0),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,6 +106,33 @@ mod tests {
         let mut zip_archive = ZipArchiveJsonWriter::new();
         zip_archive.objects.insert(String::from("foo.txt"), get_zip_object());
         zip_archive
+    }
+
+    #[test]
+    fn test_new_zip_object_calculates_percentages() {
+        let zip_object = ZipObjectJsonWriter::new(
+            zip::CompressionMethod::Deflated,
+            100,
+            50,
+        );
+
+        assert_eq!("50.00%", zip_object.compression_rate);
+
+        let zip_object_empty = ZipObjectJsonWriter::new(
+            zip::CompressionMethod::Stored,
+            0,
+            0,
+        );
+
+        assert_eq!("0.00%", zip_object_empty.compression_rate);
+
+        let zip_object_grew = ZipObjectJsonWriter::new(
+            zip::CompressionMethod::Deflated,
+            100,
+            150,
+        );
+
+        assert_eq!("-50.00%", zip_object_grew.compression_rate);
     }
 
     #[test]
