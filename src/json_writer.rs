@@ -1,6 +1,8 @@
+use ::glob;
 use ::serde_json;
 use ::zip;
 use std::collections::HashMap;
+use std::fs;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct MultiArchiveJsonWriter {
@@ -26,10 +28,33 @@ impl ZipArchiveJsonWriter {
 
     /// Create and fill ZipArchiveJsonWriter representing a
     /// .zip file:
-    pub fn from(file_path: &str) -> ZipArchiveJsonWriter {
-        //let whole_archive = zip::ZipArchive::new(file_path).unwrap();
-        // Default result:
-        ZipArchiveJsonWriter::new()
+    pub fn from(file_path: &str, exclude: &str) -> ZipArchiveJsonWriter {
+        let mut archive_writer = ZipArchiveJsonWriter::new();
+        let exclude_pattern = glob::Pattern::new(exclude).unwrap();
+
+        let file = fs::File::open(file_path).unwrap();
+        let mut whole_archive = zip::ZipArchive::new(file).unwrap();
+
+        // Loop through the objects within the archive (.zip file)...
+        for i in 0..whole_archive.len() {
+            let zip_object = whole_archive.by_index(i).unwrap();
+
+            // ...and if it isn't excluded, add the object to
+            // the HashMap in the archive writer:
+            if !exclude_pattern.matches(zip_object.name()) {
+                archive_writer.objects.insert(
+                    String::from(zip_object.name()),
+                    ZipObjectJsonWriter {
+                        compression_type: format!("{}", zip_object.compression()),
+                        original_size: zip_object.size(),
+                        compressed_size: zip_object.compressed_size(),
+                        compression_rate: String::from("0%"),
+                    }
+                );
+            }
+        }
+
+        archive_writer
     }
 }
 
