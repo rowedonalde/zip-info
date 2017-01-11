@@ -4,14 +4,36 @@ use ::zip;
 use std::collections::HashMap;
 use std::fs;
 
+pub fn zips_to_json(file_paths: &[&str], exclude: &str) -> String {
+    let multi_archive = MultiArchiveJsonWriter::from(file_paths, exclude);
+    serde_json::to_string(&multi_archive).unwrap()
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct MultiArchiveJsonWriter {
     archives: HashMap<String, ZipArchiveJsonWriter>,
 }
 
 impl MultiArchiveJsonWriter {
+    /// Construct MultiArchiveJsonWriter with empty map of archives:
     pub fn new() -> MultiArchiveJsonWriter {
         MultiArchiveJsonWriter { archives: HashMap::new() }
+    }
+
+    /// Create and fill MultiArchiveJsonWriter representing
+    /// zero to many .zip files:
+    pub fn from(
+        file_paths: &[&str], exclude: &str) -> MultiArchiveJsonWriter {
+        let mut multi_archive = MultiArchiveJsonWriter::new();
+
+        for path in file_paths {
+            multi_archive.archives.insert(
+                String::from(*path),
+                ZipArchiveJsonWriter::from(*path, exclude),
+            );
+        }
+
+        multi_archive
     }
 }
 
@@ -44,12 +66,11 @@ impl ZipArchiveJsonWriter {
             if !exclude_pattern.matches(zip_object.name()) {
                 archive_writer.objects.insert(
                     String::from(zip_object.name()),
-                    ZipObjectJsonWriter {
-                        compression_type: format!("{}", zip_object.compression()),
-                        original_size: zip_object.size(),
-                        compressed_size: zip_object.compressed_size(),
-                        compression_rate: String::from("0%"),
-                    }
+                    ZipObjectJsonWriter::new(
+                        zip_object.compression(),
+                        zip_object.size(),
+                        zip_object.compressed_size(),
+                    ),
                 );
             }
         }
