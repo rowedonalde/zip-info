@@ -9,6 +9,11 @@ pub fn zips_to_json(file_paths: &[&str], exclude: &str) -> String {
     serde_json::to_string(&multi_archive).unwrap()
 }
 
+pub fn zips_to_json_pretty(file_paths: &[&str], exclude: &str) -> String {
+    let multi_archive = MultiArchiveJsonWriter::from(file_paths,exclude);
+    serde_json::to_string_pretty(&multi_archive).unwrap()
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct MultiArchiveJsonWriter {
     archives: HashMap<String, ZipArchiveJsonWriter>,
