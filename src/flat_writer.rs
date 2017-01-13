@@ -1,12 +1,11 @@
-extern crate glob;
-extern crate zip;
-
+use ::glob;
+use ::zip;
 use std::fs;
 use zip_info::WriteZipInfo;
 
 /// Info Writer for multiple archive files:
 pub struct MultiArchiveFlatWriter<'a> {
-   path_names: &'a [String],
+    path_names: &'a [String],
 }
 
 impl<'a> MultiArchiveFlatWriter<'a> {
