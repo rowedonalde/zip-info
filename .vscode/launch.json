@@ -6,7 +6,7 @@
             "type": "gdb",
             "request": "launch",
             "target": "./target/debug/zi",
-            "arguments": "--help",
+            "arguments": "-p test.zip",
             "cwd": "${workspaceRoot}"
         }
     ]
