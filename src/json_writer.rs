@@ -4,14 +4,20 @@ use ::zip;
 use std::collections::HashMap;
 use std::fs;
 
-pub fn zips_to_json(file_paths: &[&str], exclude: &str) -> String {
-    let multi_archive = MultiArchiveJsonWriter::from(file_paths, exclude);
-    serde_json::to_string(&multi_archive).unwrap()
+use zip_info::StatArgs;
+
+pub fn zips_to_json(file_paths: &[&str], exclude: &str, stat_args: &StatArgs) -> String {
+    zips_to_json_with_printer(file_paths, exclude, stat_args, serde_json::to_string)
 }
 
-pub fn zips_to_json_pretty(file_paths: &[&str], exclude: &str) -> String {
-    let multi_archive = MultiArchiveJsonWriter::from(file_paths,exclude);
-    serde_json::to_string_pretty(&multi_archive).unwrap()
+pub fn zips_to_json_pretty(file_paths: &[&str], exclude: &str, stat_args: &StatArgs) -> String {
+    zips_to_json_with_printer(file_paths, exclude, stat_args, serde_json::to_string_pretty)
+}
+
+fn zips_to_json_with_printer<F>(file_paths: &[&str], exclude: &str, stat_args: &StatArgs, printer: F) -> String 
+    where F: Fn(&MultiArchiveJsonWriter) -> serde_json::Result<String> {
+    let multi_archive = MultiArchiveJsonWriter::from(file_paths, exclude, stat_args);
+    printer(&multi_archive).unwrap()
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -28,13 +34,13 @@ impl MultiArchiveJsonWriter {
     /// Create and fill MultiArchiveJsonWriter representing
     /// zero to many .zip files:
     pub fn from(
-        file_paths: &[&str], exclude: &str) -> MultiArchiveJsonWriter {
+        file_paths: &[&str], exclude: &str, stat_args: &StatArgs) -> MultiArchiveJsonWriter {
         let mut multi_archive = MultiArchiveJsonWriter::new();
 
         for path in file_paths {
             multi_archive.archives.insert(
                 String::from(*path),
-                ZipArchiveJsonWriter::from(*path, exclude),
+                ZipArchiveJsonWriter::from(*path, exclude, stat_args),
             );
         }
 
@@ -55,7 +61,7 @@ impl ZipArchiveJsonWriter {
 
     /// Create and fill ZipArchiveJsonWriter representing a
     /// .zip file:
-    pub fn from(file_path: &str, exclude: &str) -> ZipArchiveJsonWriter {
+    pub fn from(file_path: &str, exclude: &str, stat_args: &StatArgs) -> ZipArchiveJsonWriter {
         let mut archive_writer = ZipArchiveJsonWriter::new();
         let exclude_pattern = glob::Pattern::new(exclude).unwrap();
 
@@ -71,10 +77,15 @@ impl ZipArchiveJsonWriter {
             if !exclude_pattern.matches(zip_object.name()) {
                 archive_writer.objects.insert(
                     String::from(zip_object.name()),
+                    // I wanted to prevent the evaluation of as many of these parameters at this level as possible
+                    // but it seems that because compression rate depends on both .size() and .compressed_size(), we
+                    // need both to be passed in to calculate compression_rate if needed. (No way to encode this 
+                    // dependency here without dependent types.)
                     ZipObjectJsonWriter::new(
-                        zip_object.compression(),
+                        if stat_args.flag_compression_type { Some(zip_object.compression()) } else { None },
                         zip_object.size(),
                         zip_object.compressed_size(),
+                        stat_args,
                     ),
                 );
             }
@@ -84,33 +95,47 @@ impl ZipArchiveJsonWriter {
     }
 }
 
+// We are going to use Option types here to denote that not
+// all of these are going to be calculated, based on certain
+// command-line flags given to this program.
+//
+// TODO: Figure out how to get the JSON serializer to dump fields
+// that are set to null, if this is something that we want in the
+// feature.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct ZipObjectJsonWriter {
-    compression_type: String,
-    original_size: u64,
-    compressed_size: u64,
-    compression_rate: String,
+    compression_type: Option<String>,
+    original_size: Option<u64>,
+    compressed_size: Option<u64>,
+    compression_rate: Option<String>,
 }
 
 impl ZipObjectJsonWriter {
     pub fn new(
-        compression_type: zip::CompressionMethod,
+        compression_type: Option<zip::CompressionMethod>,
         original_size: u64,
         compressed_size: u64,
+        stat_args: &StatArgs,
     ) -> ZipObjectJsonWriter {
-        let compression_rate = match original_size {
-            0 => 0.0 as f64,
-            _ => {
-                (original_size as f64 - compressed_size as f64)
-                / original_size as f64
-            },
-        };
+        let compression_rate =
+            if stat_args.flag_compression_rate {
+                Some(match original_size {
+                    0 => 0.0 as f64,
+                    _ => {
+                        (original_size as f64 - compressed_size as f64)
+                        / original_size as f64
+                    },
+                })
+            }
+            else {
+                None
+            };
 
         ZipObjectJsonWriter {
-            compression_type: format!("{}", compression_type),
-            original_size: original_size,
-            compressed_size: compressed_size,
-            compression_rate: format!("{:.*}%", 2, compression_rate * 100.0),
+            compression_type: compression_type.and_then(|v| Some(format!("{}", v))),
+            original_size: if stat_args.flag_original_size { Some(original_size) } else { None },
+            compressed_size: if stat_args.flag_compressed_size { Some(compressed_size) } else { None },
+            compression_rate: compression_rate.and_then(|v| Some(format!("{:.*}%", 2, v * 100.0))),
         }
     }
 }
@@ -121,10 +146,10 @@ mod tests {
 
     fn get_zip_object() -> ZipObjectJsonWriter {
         ZipObjectJsonWriter {
-            compression_type: format!("{}", zip::CompressionMethod::Deflated),
-            original_size: 100,
-            compressed_size: 50,
-            compression_rate: String::from("50%"),
+            compression_type: Some(format!("{}", zip::CompressionMethod::Deflated)),
+            original_size: Some(100),
+            compressed_size: Some(50),
+            compression_rate: Some(String::from("50%")),
         }
     }
 
@@ -137,28 +162,31 @@ mod tests {
     #[test]
     fn test_new_zip_object_calculates_percentages() {
         let zip_object = ZipObjectJsonWriter::new(
-            zip::CompressionMethod::Deflated,
+            Some(zip::CompressionMethod::Deflated),
             100,
             50,
+            &StatArgs::default(),
         );
 
-        assert_eq!("50.00%", zip_object.compression_rate);
+        assert_eq!("50.00%", zip_object.compression_rate.unwrap_or_default());
 
         let zip_object_empty = ZipObjectJsonWriter::new(
-            zip::CompressionMethod::Stored,
+            Some(zip::CompressionMethod::Stored),
             0,
             0,
+            &StatArgs::default(),
         );
 
-        assert_eq!("0.00%", zip_object_empty.compression_rate);
+        assert_eq!("0.00%", zip_object_empty.compression_rate.unwrap_or_default());
 
         let zip_object_grew = ZipObjectJsonWriter::new(
-            zip::CompressionMethod::Deflated,
+            Some(zip::CompressionMethod::Deflated),
             100,
             150,
+            &StatArgs::default(),
         );
 
-        assert_eq!("-50.00%", zip_object_grew.compression_rate);
+        assert_eq!("-50.00%", zip_object_grew.compression_rate.unwrap_or_default());
     }
 
     #[test]
