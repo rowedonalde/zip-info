@@ -104,9 +104,13 @@ impl ZipArchiveJsonWriter {
 // feature.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct ZipObjectJsonWriter {
+    #[serde(skip_serializing_if="Option::is_none")]
     compression_type: Option<String>,
+    #[serde(skip_serializing_if="Option::is_none")]
     original_size: Option<u64>,
+    #[serde(skip_serializing_if="Option::is_none")]
     compressed_size: Option<u64>,
+    #[serde(skip_serializing_if="Option::is_none")]
     compression_rate: Option<String>,
 }
 
