@@ -8,3 +8,4 @@ target
 
 # Script artifacts
 etc/__pycache__/
+*.pyc
