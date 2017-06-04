@@ -1,0 +1,6 @@
+###############################################################################
+# linguist behavior
+# 
+# Do not count the VS Code and GDB python setups in the language count
+###############################################################################
+etc/* linguist-vendored
