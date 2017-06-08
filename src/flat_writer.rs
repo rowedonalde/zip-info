@@ -1,7 +1,9 @@
 use ::glob;
 use ::zip;
 use std::fs;
+
 use zip_info::WriteZipInfo;
+use zip_info::StatArgs;
 
 /// Info Writer for multiple archive files:
 pub struct MultiArchiveFlatWriter<'a> {
@@ -17,12 +19,12 @@ impl<'a> MultiArchiveFlatWriter<'a> {
 impl<'a> WriteZipInfo for MultiArchiveFlatWriter<'a> {
     /// Given path names for multiple archives, concatenate their
     /// names, contents, and stats:
-    fn write_zip_info(&mut self, exclude: &str) -> String {
+    fn write_zip_info(&mut self, exclude: &str, stat_args: &StatArgs) -> String {
         let mut output = Vec::new();
 
         for path_name in self.path_names {
             let archive_info = ZipInfoFlatWriter::new(path_name.as_str())
-                .write_zip_info(exclude);
+                .write_zip_info(exclude, stat_args);
 
             output.push(archive_info);
         }
@@ -49,7 +51,7 @@ impl<'a> ZipInfoFlatWriter<'a> {
 
 impl<'a> WriteZipInfo for ZipInfoFlatWriter<'a> {
     /// Concatenate Zip file name with indented stats for an archive:
-    fn write_zip_info(&mut self, exclude: &str) -> String {
+    fn write_zip_info(&mut self, exclude: &str, stat_args: &StatArgs) -> String {
         let mut info = format!("{}", self.path_name);
 
         let exclude_pattern = glob::Pattern::new(exclude).unwrap();
@@ -58,7 +60,7 @@ impl<'a> WriteZipInfo for ZipInfoFlatWriter<'a> {
             let archive_item = self.archive.by_index(i).unwrap();
 
             if !exclude_pattern.matches(archive_item.name()) {
-                info = format!("{}{}", info, info_for_archive_item(archive_item));
+                info = format!("{}{}", info, info_for_archive_item(archive_item, stat_args));
             }
         }
 
@@ -66,21 +68,28 @@ impl<'a> WriteZipInfo for ZipInfoFlatWriter<'a> {
     }
 }
 
-fn info_for_archive_item(archive_item: zip::read::ZipFile) -> String {
+fn info_for_archive_item(archive_item: zip::read::ZipFile, stat_args: &StatArgs) -> String {
     let mut info = String::new();
     let item_path = archive_item.name();
     info = format!("{}\n\t{}", info, item_path);
 
-    let compression_type = archive_item.compression();
-    info = format!("{}\n\t\tCompression type: {}", info, compression_type);
+    if stat_args.flag_compression_type {
+        let compression_type = archive_item.compression();
+        info = format!("{}\n\t\tCompression type: {}", info, compression_type);
+    }
 
+    // Can't think of a way to avoid evaluating original_size or compressed_size without dependent typing...
     let original_size = archive_item.size();
-    info = format!("{}\n\t\tOriginal size: {}", info, original_size);
+    if stat_args.flag_original_size {
+        info = format!("{}\n\t\tOriginal size: {}", info, original_size);
+    }
 
     let compressed_size = archive_item.compressed_size();
-    info = format!("{}\n\t\tCompressed size: {}", info, compressed_size);
+    if stat_args.flag_compressed_size {
+        info = format!("{}\n\t\tCompressed size: {}", info, compressed_size);
+    }
 
-    if original_size > 0 {
+    if stat_args.flag_compression_rate && original_size > 0 {
         let compression_rate =
             (original_size as f64 - compressed_size as f64)
             / original_size as f64;

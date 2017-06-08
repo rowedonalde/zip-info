@@ -15,10 +15,12 @@ mod flat_writer;
 mod json_writer;
 
 use zip_info::WriteZipInfo;
+use zip_info::Args;
+use zip_info::StatArgs;
 
 /// The Docopt usage string
 const USAGE: &'static str = "
-Usage: zi [-j | -p] [--exclude=<glob>] <path> ...
+Usage: zi [-j | -p] [--exclude=<glob>] [options] <path> ...
        zi --help
 
 zi presents information about Zip archives.
@@ -29,21 +31,20 @@ Common options:
     -p, --pretty-json  Structure the output in easy-to-read JSON
     --exclude=<glob>   Ignore objects in the archives whose name
                        is like this glob pattern.
+More options:
+    --compression-type  Show the compression type of each file.
+    --original-size     Show the original size of each file.
+    --compressed-size   Show the compressed size of each file.
+    --compression-rate  Show the compression rate of each file.
 ";
-
-#[derive(Debug, RustcDecodable)]
-struct Args {
-    arg_path: Vec<String>,
-    flag_json: bool,
-    flag_pretty_json: bool,
-    flag_exclude: String,
-}
 
 fn main() {
     let args: Args = Docopt::new(USAGE)
                             .and_then(|d| d.decode())
                             .unwrap_or_else(|e| e.exit());
 
+    let stat_args = StatArgs::new(&args);
+    
     // XXX We divide up the display functionality here since
     // the original flat writer works differently than the JSON
     // writer. Ultimately, the JSON writer should be a generic
@@ -54,7 +55,7 @@ fn main() {
             args.arg_path.as_slice()
         );
 
-        println!("{}", multiwriter.write_zip_info(args.flag_exclude.as_str()));
+        println!("{}", multiwriter.write_zip_info(args.flag_exclude.as_str(), &stat_args));
     } else {
         // Convert String to &str for json printing since
         // Docopt appears not to be able to handle Vec<&str>:
@@ -69,6 +70,6 @@ fn main() {
             _ => json_writer::zips_to_json_pretty,
         };
 
-        println!("{}", s(path_names.as_slice(), args.flag_exclude.as_str()));
+        println!("{}", s(path_names.as_slice(), args.flag_exclude.as_str(), &stat_args));
     }
 }
